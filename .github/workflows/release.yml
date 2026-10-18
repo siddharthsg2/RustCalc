@@ -85,7 +85,15 @@ jobs:
 
       - uses: android-actions/setup-android@v4
 
+      - name: Restore debug keystore
+        id: keystore
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: rustcalc-android-signing-key-v1
+
       - name: Create debug keystore
+        if: steps.keystore.outputs.cache-hit != 'true'
         run: |
           mkdir -p "$HOME/.android"
           keytool -genkeypair -keystore "$HOME/.android/debug.keystore" \
@@ -105,12 +113,15 @@ jobs:
         run: cargo install --git https://github.com/parasyte/cargo-apk.git --rev 282639508eeed7d73f2e1eaeea042da2716436d5 cargo-apk
 
       - name: Build APK
-        run: cargo apk build -p rustcalc-android --lib
+        run: |
+          export CARGO_APK_RELEASE_KEYSTORE="$HOME/.android/debug.keystore"
+          export CARGO_APK_RELEASE_KEYSTORE_PASSWORD=android
+          cargo apk build --release -p rustcalc-android --lib
 
       - name: Package APK
         run: |
           mkdir -p package
-          cp target/debug/apk/rustcalc.apk "package/rustcalc-${GITHUB_REF_NAME}-android.apk"
+          cp target/release/apk/rustcalc.apk "package/rustcalc-${GITHUB_REF_NAME}-android.apk"
 
       - uses: actions/upload-artifact@v4
         with:
