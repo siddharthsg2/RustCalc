@@ -1,4 +1,5 @@
 #![forbid(unsafe_code)]
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 //! RustCalc desktop application entry point.
 
 use eframe::egui;
