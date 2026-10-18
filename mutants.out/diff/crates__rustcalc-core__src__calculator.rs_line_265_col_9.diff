@@ -1,0 +1,29 @@
+--- crates/rustcalc-core/src/calculator.rs
++++ replace Calculator::clear with ()
+@@ -257,25 +257,17 @@
+         match self.entry.strip_prefix('-') {
+             Some(unsigned) => self.entry = unsigned.to_string(),
+             None => self.entry.insert(0, '-'),
+         }
+     }
+ 
+     /// Reset everything except the history.
+     pub fn clear(&mut self) {
+-        self.entry = "0".to_string();
+-        self.accumulator = 0.0;
+-        self.pending = None;
+-        self.fresh = false;
+-        self.awaiting_rhs = false;
+-        self.last_op = None;
+-        self.last_rhs = 0.0;
+-        self.last_expression.clear();
+-        self.error = None;
++        () /* ~ changed by cargo-mutants ~ */
+     }
+ 
+     /// Clear only the current entry, keeping any pending operation.
+     pub fn clear_entry(&mut self) {
+         if self.error.is_some() {
+             self.clear();
+             return;
+         }

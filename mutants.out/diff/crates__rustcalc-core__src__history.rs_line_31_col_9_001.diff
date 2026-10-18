@@ -1,0 +1,19 @@
+--- crates/rustcalc-core/src/history.rs
++++ replace History::entries -> &[HistoryEntry] with Vec::leak(vec![Default::default()])
+@@ -23,15 +23,15 @@
+     pub(crate) fn push(&mut self, entry: HistoryEntry) {
+         self.entries.push(entry);
+         if self.entries.len() > HISTORY_CAPACITY {
+             self.entries.remove(0);
+         }
+     }
+ 
+     pub(crate) fn entries(&self) -> &[HistoryEntry] {
+-        &self.entries
++        Vec::leak(vec![Default::default()]) /* ~ changed by cargo-mutants ~ */
+     }
+ 
+     pub(crate) fn clear(&mut self) {
+         self.entries.clear();
+     }
+ }

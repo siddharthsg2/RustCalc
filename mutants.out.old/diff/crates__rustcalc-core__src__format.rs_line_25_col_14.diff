@@ -1,0 +1,21 @@
+--- crates/rustcalc-core/src/format.rs
++++ replace == with != in format_number
+@@ -17,17 +17,17 @@
+     if value.is_infinite() {
+         return if value.is_sign_positive() {
+             "∞"
+         } else {
+             "-∞"
+         }
+         .to_string();
+     }
+-    if value == 0.0 {
++    if value != /* ~ changed by cargo-mutants ~ */ 0.0 {
+         return "0".to_string();
+     }
+     let magnitude = value.abs();
+     if magnitude >= SCI_UPPER || magnitude < SCI_LOWER {
+         scientific(value)
+     } else {
+         trim_trailing_zeros(format!("{value:.12}"))
+     }

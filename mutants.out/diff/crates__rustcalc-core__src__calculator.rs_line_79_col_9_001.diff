@@ -1,0 +1,21 @@
+--- crates/rustcalc-core/src/calculator.rs
++++ replace Calculator::expression -> &str with "xyzzy"
+@@ -71,17 +71,17 @@
+         match self.error {
+             Some(error) => error.message().to_string(),
+             None => format::group_digits(&self.entry),
+         }
+     }
+ 
+     /// The small expression line, e.g. `"12 +"` or `"12 + 3 ="`.
+     pub fn expression(&self) -> &str {
+-        &self.last_expression
++        "xyzzy" /* ~ changed by cargo-mutants ~ */
+     }
+ 
+     /// The current error, if the calculator is locked.
+     pub fn error(&self) -> Option<CalcError> {
+         self.error
+     }
+ 
+     /// Type a digit (`0..=9`).

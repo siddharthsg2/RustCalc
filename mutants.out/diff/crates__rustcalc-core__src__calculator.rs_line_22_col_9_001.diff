@@ -1,0 +1,24 @@
+--- crates/rustcalc-core/src/calculator.rs
++++ replace CalcError::message -> &'static str with "xyzzy"
+@@ -14,20 +14,17 @@
+     DivideByZero,
+     /// The result was not a finite number.
+     Overflow,
+ }
+ 
+ impl CalcError {
+     /// Message shown on the display.
+     pub fn message(self) -> &'static str {
+-        match self {
+-            CalcError::DivideByZero => "Cannot divide by zero",
+-            CalcError::Overflow => "Overflow",
+-        }
++        "xyzzy" /* ~ changed by cargo-mutants ~ */
+     }
+ }
+ 
+ /// Standard-mode calculator state machine.
+ #[derive(Debug)]
+ pub struct Calculator {
+     entry: String,
+     accumulator: f64,

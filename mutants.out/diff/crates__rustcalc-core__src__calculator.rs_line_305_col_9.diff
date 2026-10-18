@@ -1,0 +1,21 @@
+--- crates/rustcalc-core/src/calculator.rs
++++ replace Calculator::history -> &[HistoryEntry] with Vec::leak(Vec::new())
+@@ -297,17 +297,17 @@
+         self.entry.pop();
+         if self.entry.is_empty() || self.entry == "-" {
+             self.entry = "0".to_string();
+         }
+     }
+ 
+     /// The recorded calculations, oldest first.
+     pub fn history(&self) -> &[HistoryEntry] {
+-        self.history.entries()
++        Vec::leak(Vec::new()) /* ~ changed by cargo-mutants ~ */
+     }
+ 
+     /// Forget all recorded calculations.
+     pub fn clear_history(&mut self) {
+         self.history.clear();
+     }
+ 
+     /// Put the result of history entry `index` into the display.

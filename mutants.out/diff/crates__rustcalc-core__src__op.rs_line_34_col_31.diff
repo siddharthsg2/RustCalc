@@ -1,0 +1,21 @@
+--- crates/rustcalc-core/src/op.rs
++++ replace && with || in Op::apply
+@@ -26,17 +26,17 @@
+         }
+     }
+ 
+     /// Apply the operation to two finite operands.
+     ///
+     /// Fails with [`CalcError::DivideByZero`] when dividing by zero and with
+     /// [`CalcError::Overflow`] when the result is not finite.
+     pub(crate) fn apply(self, lhs: f64, rhs: f64) -> Result<f64, CalcError> {
+-        if self == Op::Divide && rhs == 0.0 {
++        if self == Op::Divide || /* ~ changed by cargo-mutants ~ */ rhs == 0.0 {
+             return Err(CalcError::DivideByZero);
+         }
+         let result = match self {
+             Op::Add => lhs + rhs,
+             Op::Subtract => lhs - rhs,
+             Op::Multiply => lhs * rhs,
+             Op::Divide => lhs / rhs,
+         };

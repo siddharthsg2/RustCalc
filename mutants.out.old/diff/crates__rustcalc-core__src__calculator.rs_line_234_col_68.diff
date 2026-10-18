@@ -1,0 +1,21 @@
+--- crates/rustcalc-core/src/calculator.rs
++++ replace * with + in Calculator::percent
+@@ -226,17 +226,17 @@
+     /// by 100.
+     pub fn percent(&mut self) {
+         if self.error.is_some() {
+             return;
+         }
+         self.last_op = None;
+         let value = self.current_value();
+         let result = match self.pending {
+-            Some(Op::Add) | Some(Op::Subtract) => self.accumulator * value / 100.0,
++            Some(Op::Add) | Some(Op::Subtract) => self.accumulator + /* ~ changed by cargo-mutants ~ */ value / 100.0,
+             _ => value / 100.0,
+         };
+         self.fresh = true;
+         self.awaiting_rhs = false;
+         if result.is_finite() {
+             self.entry = format::format_number(result);
+         } else {
+             self.error = Some(CalcError::Overflow);

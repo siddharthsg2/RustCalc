@@ -1,0 +1,23 @@
+--- crates/rustcalc-core/src/calculator.rs
++++ replace Calculator::recover_from_error with ()
+@@ -324,19 +324,17 @@
+         self.entry = format::format_number(value);
+         self.fresh = true;
+         self.awaiting_rhs = false;
+         self.last_op = None;
+         true
+     }
+ 
+     fn recover_from_error(&mut self) {
+-        if self.error.is_some() {
+-            self.clear();
+-        }
++        () /* ~ changed by cargo-mutants ~ */
+     }
+ 
+     fn digit_count(&self) -> usize {
+         self.entry.chars().filter(char::is_ascii_digit).count()
+     }
+ 
+     fn current_value(&self) -> f64 {
+         self.entry.parse().unwrap_or(0.0)

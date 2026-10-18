@@ -1,0 +1,3 @@
+crates/rustcalc-core/src/calculator.rs:84:9: replace Calculator::error -> Option<CalcError> with Some(Default::default())
+crates/rustcalc-core/src/calculator.rs:305:9: replace Calculator::history -> &[HistoryEntry] with Vec::leak(vec![Default::default()])
+crates/rustcalc-core/src/history.rs:31:9: replace History::entries -> &[HistoryEntry] with Vec::leak(vec![Default::default()])

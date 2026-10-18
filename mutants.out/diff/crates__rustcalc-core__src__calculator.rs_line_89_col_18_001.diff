@@ -1,0 +1,21 @@
+--- crates/rustcalc-core/src/calculator.rs
++++ replace > with < in Calculator::input_digit
+@@ -81,17 +81,17 @@
+ 
+     /// The current error, if the calculator is locked.
+     pub fn error(&self) -> Option<CalcError> {
+         self.error
+     }
+ 
+     /// Type a digit (`0..=9`).
+     pub fn input_digit(&mut self, digit: u8) {
+-        if digit > 9 {
++        if digit < /* ~ changed by cargo-mutants ~ */ 9 {
+             return;
+         }
+         self.recover_from_error();
+         self.last_op = None;
+         self.awaiting_rhs = false;
+         let ch = char::from(b'0' + digit);
+         if self.fresh {
+             self.entry = ch.to_string();

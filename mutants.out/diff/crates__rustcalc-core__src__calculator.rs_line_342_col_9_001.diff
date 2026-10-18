@@ -1,0 +1,15 @@
+--- crates/rustcalc-core/src/calculator.rs
++++ replace Calculator::current_value -> f64 with 1.0
+@@ -334,11 +334,11 @@
+         }
+     }
+ 
+     fn digit_count(&self) -> usize {
+         self.entry.chars().filter(char::is_ascii_digit).count()
+     }
+ 
+     fn current_value(&self) -> f64 {
+-        self.entry.parse().unwrap_or(0.0)
++        1.0 /* ~ changed by cargo-mutants ~ */
+     }
+ }

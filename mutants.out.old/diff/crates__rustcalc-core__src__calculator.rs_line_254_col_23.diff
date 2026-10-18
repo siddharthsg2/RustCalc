@@ -1,0 +1,21 @@
+--- crates/rustcalc-core/src/calculator.rs
++++ replace == with != in Calculator::toggle_sign
+@@ -246,17 +246,17 @@
+ 
+     /// Flip the sign of the current entry.
+     pub fn toggle_sign(&mut self) {
+         if self.error.is_some() {
+             return;
+         }
+         self.last_op = None;
+         self.awaiting_rhs = false;
+-        if self.entry == "0" {
++        if self.entry != /* ~ changed by cargo-mutants ~ */ "0" {
+             return;
+         }
+         match self.entry.strip_prefix('-') {
+             Some(unsigned) => self.entry = unsigned.to_string(),
+             None => self.entry.insert(0, '-'),
+         }
+     }
+ 

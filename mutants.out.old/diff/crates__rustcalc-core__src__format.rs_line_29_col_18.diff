@@ -1,0 +1,21 @@
+--- crates/rustcalc-core/src/format.rs
++++ replace >= with < in format_number
+@@ -21,17 +21,17 @@
+             "-∞"
+         }
+         .to_string();
+     }
+     if value == 0.0 {
+         return "0".to_string();
+     }
+     let magnitude = value.abs();
+-    if magnitude >= SCI_UPPER || magnitude < SCI_LOWER {
++    if magnitude < /* ~ changed by cargo-mutants ~ */ SCI_UPPER || magnitude < SCI_LOWER {
+         scientific(value)
+     } else {
+         trim_trailing_zeros(format!("{value:.12}"))
+     }
+ }
+ 
+ fn scientific(value: f64) -> String {
+     let raw = format!("{value:.10e}");

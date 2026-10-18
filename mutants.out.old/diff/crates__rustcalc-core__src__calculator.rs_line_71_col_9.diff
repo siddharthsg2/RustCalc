@@ -1,0 +1,24 @@
+--- crates/rustcalc-core/src/calculator.rs
++++ replace Calculator::display -> String with String::new()
+@@ -63,20 +63,17 @@
+             last_expression: String::new(),
+             error: None,
+             history: History::default(),
+         }
+     }
+ 
+     /// The main display line, e.g. `"1,234.5"` or an error message.
+     pub fn display(&self) -> String {
+-        match self.error {
+-            Some(error) => error.message().to_string(),
+-            None => format::group_digits(&self.entry),
+-        }
++        String::new() /* ~ changed by cargo-mutants ~ */
+     }
+ 
+     /// The small expression line, e.g. `"12 +"` or `"12 + 3 ="`.
+     pub fn expression(&self) -> &str {
+         &self.last_expression
+     }
+ 
+     /// The current error, if the calculator is locked.

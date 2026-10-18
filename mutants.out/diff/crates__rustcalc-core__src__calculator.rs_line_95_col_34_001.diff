@@ -1,0 +1,21 @@
+--- crates/rustcalc-core/src/calculator.rs
++++ replace + with * in Calculator::input_digit
+@@ -87,17 +87,17 @@
+     /// Type a digit (`0..=9`).
+     pub fn input_digit(&mut self, digit: u8) {
+         if digit > 9 {
+             return;
+         }
+         self.recover_from_error();
+         self.last_op = None;
+         self.awaiting_rhs = false;
+-        let ch = char::from(b'0' + digit);
++        let ch = char::from(b'0' * /* ~ changed by cargo-mutants ~ */ digit);
+         if self.fresh {
+             self.entry = ch.to_string();
+             self.fresh = false;
+             return;
+         }
+         if self.entry == "0" {
+             self.entry = ch.to_string();
+             return;

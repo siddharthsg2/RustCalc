@@ -1,0 +1,21 @@
+--- crates/rustcalc-core/src/history.rs
++++ replace > with < in History::push
+@@ -17,17 +17,17 @@
+ #[derive(Debug, Default)]
+ pub(crate) struct History {
+     entries: Vec<HistoryEntry>,
+ }
+ 
+ impl History {
+     pub(crate) fn push(&mut self, entry: HistoryEntry) {
+         self.entries.push(entry);
+-        if self.entries.len() > HISTORY_CAPACITY {
++        if self.entries.len() < /* ~ changed by cargo-mutants ~ */ HISTORY_CAPACITY {
+             self.entries.remove(0);
+         }
+     }
+ 
+     pub(crate) fn entries(&self) -> &[HistoryEntry] {
+         &self.entries
+     }
+ 

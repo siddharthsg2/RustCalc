@@ -1,0 +1,32 @@
+--- crates/rustcalc-core/src/calculator.rs
++++ replace Calculator::recall_history -> bool with false
+@@ -309,28 +309,17 @@
+     pub fn clear_history(&mut self) {
+         self.history.clear();
+     }
+ 
+     /// Put the result of history entry `index` into the display.
+     ///
+     /// Returns `false` when the index is out of range.
+     pub fn recall_history(&mut self, index: usize) -> bool {
+-        let value = match self.history.entries().get(index) {
+-            Some(entry) => entry.value,
+-            None => return false,
+-        };
+-        if self.error.is_some() {
+-            self.clear();
+-        }
+-        self.entry = format::format_number(value);
+-        self.fresh = true;
+-        self.awaiting_rhs = false;
+-        self.last_op = None;
+-        true
++        false /* ~ changed by cargo-mutants ~ */
+     }
+ 
+     fn recover_from_error(&mut self) {
+         if self.error.is_some() {
+             self.clear();
+         }
+     }
+ 
