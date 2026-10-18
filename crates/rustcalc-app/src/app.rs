@@ -148,53 +148,39 @@ impl RustCalcApp {
     }
 
     /// Actions triggered by keyboard input this frame.
+    ///
+    /// Printable characters (digits, operators, decimal point) are taken from
+    /// [`egui::Event::Text`], which is what a real keyboard produces and is
+    /// layout-aware. Reading them from key presses instead would double-fire
+    /// for shifted keys (e.g. `Shift+8` types `*` but still reports `Num8`).
     fn keyboard_actions(ctx: &egui::Context) -> Vec<Action> {
         ctx.input(|input| {
             let mut actions = Vec::new();
 
-            let digits = [
-                (Key::Num0, 0_u8),
-                (Key::Num1, 1),
-                (Key::Num2, 2),
-                (Key::Num3, 3),
-                (Key::Num4, 4),
-                (Key::Num5, 5),
-                (Key::Num6, 6),
-                (Key::Num7, 7),
-                (Key::Num8, 8),
-                (Key::Num9, 9),
-            ];
-            for (key, digit) in digits {
-                if input.key_pressed(key) {
-                    actions.push(Action::Digit(digit));
-                }
-            }
-
-            let operators = [
-                (Key::Plus, Op::Add),
-                (Key::Minus, Op::Subtract),
-                (Key::Slash, Op::Divide),
-            ];
-            for (key, op) in operators {
-                if input.key_pressed(key) {
-                    actions.push(Action::Op(op));
-                }
-            }
-
-            // `*` and `%` have no logical key in egui; they arrive as text.
             for event in &input.events {
-                if let egui::Event::Text(text) = event {
-                    match text.as_str() {
-                        "*" => actions.push(Action::Op(Op::Multiply)),
-                        "%" => actions.push(Action::Percent),
-                        _ => {}
-                    }
+                let egui::Event::Text(text) = event else {
+                    continue;
+                };
+                let mut chars = text.chars();
+                let Some(ch) = chars.next() else { continue };
+                if chars.next().is_some() {
+                    continue;
+                }
+                if let Some(digit) = ch.to_digit(10) {
+                    actions.push(Action::Digit(digit as u8));
+                    continue;
+                }
+                match ch {
+                    '.' | ',' => actions.push(Action::Decimal),
+                    '+' => actions.push(Action::Op(Op::Add)),
+                    '-' => actions.push(Action::Op(Op::Subtract)),
+                    '*' | '×' => actions.push(Action::Op(Op::Multiply)),
+                    '/' | '÷' => actions.push(Action::Op(Op::Divide)),
+                    '%' => actions.push(Action::Percent),
+                    _ => {}
                 }
             }
 
-            if input.key_pressed(Key::Period) {
-                actions.push(Action::Decimal);
-            }
             if input.key_pressed(Key::Enter) || input.key_pressed(Key::Equals) {
                 actions.push(Action::Equals);
             }

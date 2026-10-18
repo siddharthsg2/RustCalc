@@ -1,77 +1,24 @@
 //! The window icon, drawn in code so there is no image asset to ship.
 
-use eframe::egui::{Color32, IconData};
+use eframe::egui::IconData;
 
-use crate::theme;
+use crate::icon_pixels;
 
 const SIZE: u32 = 64;
 
 /// The RustCalc window icon: an amber equals sign on a dark rounded square.
 pub fn window_icon() -> IconData {
-    let mut rgba = vec![0_u8; (SIZE * SIZE * 4) as usize];
-    for y in 0..SIZE {
-        for x in 0..SIZE {
-            let px = x as f32 + 0.5;
-            let py = y as f32 + 0.5;
-
-            let background = coverage(sd_rounded_rect(px, py, 32.0, 32.0, 30.0, 30.0, 13.0));
-            if background <= 0.0 {
-                continue;
-            }
-
-            let top_bar = coverage(sd_rounded_rect(px, py, 32.0, 24.0, 15.0, 3.0, 3.0));
-            let bottom_bar = coverage(sd_rounded_rect(px, py, 32.0, 40.0, 15.0, 3.0, 3.0));
-            let color = mix(theme::ACCENT, theme::ACCENT_TEXT, top_bar.max(bottom_bar));
-
-            let index = ((y * SIZE + x) * 4) as usize;
-            rgba[index] = color.r();
-            rgba[index + 1] = color.g();
-            rgba[index + 2] = color.b();
-            rgba[index + 3] = (background * 255.0).round() as u8;
-        }
-    }
     IconData {
-        rgba,
+        rgba: icon_pixels::render_rgba(SIZE),
         width: SIZE,
         height: SIZE,
     }
 }
 
-/// Signed distance from a point to a rounded rectangle.
-fn sd_rounded_rect(
-    px: f32,
-    py: f32,
-    cx: f32,
-    cy: f32,
-    half_w: f32,
-    half_h: f32,
-    radius: f32,
-) -> f32 {
-    let qx = (px - cx).abs() - (half_w - radius);
-    let qy = (py - cy).abs() - (half_h - radius);
-    let outside_x = qx.max(0.0);
-    let outside_y = qy.max(0.0);
-    (outside_x * outside_x + outside_y * outside_y).sqrt() + qx.max(qy).min(0.0) - radius
-}
-
-/// Antialiased coverage in `[0, 1]` for a pixel at `distance` from the shape.
-fn coverage(distance: f32) -> f32 {
-    (0.5 - distance).clamp(0.0, 1.0)
-}
-
-/// Linear blend between two colors; `t = 0` is `from`, `t = 1` is `to`.
-fn mix(from: Color32, to: Color32, t: f32) -> Color32 {
-    let lerp = |a: u8, b: u8| (a as f32 + (b as f32 - a as f32) * t).round() as u8;
-    Color32::from_rgb(
-        lerp(from.r(), to.r()),
-        lerp(from.g(), to.g()),
-        lerp(from.b(), to.b()),
-    )
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::theme;
 
     fn pixel(icon: &IconData, x: u32, y: u32) -> [u8; 4] {
         let index = ((y * icon.width + x) * 4) as usize;
@@ -132,5 +79,13 @@ mod tests {
         let icon = window_icon();
         assert_eq!(pixel(&icon, 4, 32)[3], 255);
         assert_eq!(pixel(&icon, 32, 4)[3], 255);
+    }
+
+    #[test]
+    fn scales_to_small_sizes() {
+        let icon = icon_pixels::render_rgba(16);
+        assert_eq!(icon.len(), 16 * 16 * 4);
+        let center = ((8 * 16 + 8) * 4) as usize;
+        assert_eq!(icon[center + 3], 255);
     }
 }

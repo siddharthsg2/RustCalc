@@ -6,4 +6,5 @@
 
 pub mod app;
 pub mod icon;
+mod icon_pixels;
 pub mod theme;

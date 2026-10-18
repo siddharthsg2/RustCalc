@@ -2,10 +2,20 @@
 
 use eframe::egui::{self, Color32, CornerRadius, Frame, Vec2};
 
+use crate::icon_pixels;
+
 /// Accent color (equals key, selection highlight).
-pub const ACCENT: Color32 = Color32::from_rgb(0xF2, 0xA9, 0x3B);
+pub const ACCENT: Color32 = Color32::from_rgb(
+    icon_pixels::ACCENT[0],
+    icon_pixels::ACCENT[1],
+    icon_pixels::ACCENT[2],
+);
 /// Text color drawn on top of the accent color.
-pub const ACCENT_TEXT: Color32 = Color32::from_rgb(0x1B, 0x1E, 0x24);
+pub const ACCENT_TEXT: Color32 = Color32::from_rgb(
+    icon_pixels::ACCENT_TEXT[0],
+    icon_pixels::ACCENT_TEXT[1],
+    icon_pixels::ACCENT_TEXT[2],
+);
 /// Error text color.
 pub const ERROR: Color32 = Color32::from_rgb(0xFF, 0x7A, 0x7A);
 

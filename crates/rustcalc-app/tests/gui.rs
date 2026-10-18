@@ -24,7 +24,8 @@ fn click_button(harness: &mut Harness<'_, RustCalcApp>, label: &str) {
     harness.run();
 }
 
-/// Queue a text-input event (used for `*` and `%`, which have no logical key).
+/// Queue a text-input event, exactly what a real keyboard produces for
+/// printable characters (digits, `.`, `+`, `-`, `*`, `/`, `%`).
 fn press_text(harness: &mut Harness<'_, RustCalcApp>, text: &str) {
     harness
         .input_mut()
@@ -46,20 +47,59 @@ fn clicking_digits_computes_result() {
 #[test]
 fn keyboard_computes_result() {
     let mut harness = harness();
-    harness.key_press(Key::Num7);
-    harness.key_press(Key::Plus);
-    harness.key_press(Key::Num3);
+    press_text(&mut harness, "7");
+    press_text(&mut harness, "+");
+    press_text(&mut harness, "3");
     harness.key_press(Key::Enter);
     harness.run();
     assert_eq!(harness.state().display(), "10");
 }
 
 #[test]
+fn keyboard_decimal_point_and_minus() {
+    let mut harness = harness();
+    press_text(&mut harness, "8");
+    press_text(&mut harness, ".");
+    press_text(&mut harness, "5");
+    press_text(&mut harness, "-");
+    press_text(&mut harness, "2");
+    harness.key_press(Key::Enter);
+    harness.run();
+    assert_eq!(harness.state().display(), "6.5");
+}
+
+#[test]
+fn keyboard_comma_acts_as_decimal_point() {
+    let mut harness = harness();
+    press_text(&mut harness, "1");
+    press_text(&mut harness, ",");
+    press_text(&mut harness, "5");
+    assert_eq!(harness.state().display(), "1.5");
+}
+
+#[test]
+fn shifted_star_does_not_type_a_digit() {
+    let mut harness = harness();
+    press_text(&mut harness, "2");
+    // A real keyboard sends both a `Num8` key event and a `*` text event
+    // for `Shift+8`. Only the text event may become input.
+    harness.key_press(Key::Num8);
+    harness
+        .input_mut()
+        .events
+        .push(eframe::egui::Event::Text("*".to_owned()));
+    harness.run();
+    press_text(&mut harness, "3");
+    harness.key_press(Key::Enter);
+    harness.run();
+    assert_eq!(harness.state().display(), "6");
+}
+
+#[test]
 fn escape_clears_everything() {
     let mut harness = harness();
-    harness.key_press(Key::Num9);
-    harness.key_press(Key::Num9);
-    harness.run();
+    press_text(&mut harness, "9");
+    press_text(&mut harness, "9");
     assert_eq!(harness.state().display(), "99");
     harness.key_press(Key::Escape);
     harness.run();
@@ -102,12 +142,11 @@ fn division_by_zero_shows_error_and_c_recovers() {
 #[test]
 fn percent_uses_windows_semantics() {
     let mut harness = harness();
-    harness.key_press(Key::Num5);
-    harness.key_press(Key::Num0);
-    harness.key_press(Key::Plus);
-    harness.key_press(Key::Num1);
-    harness.key_press(Key::Num0);
-    harness.run();
+    press_text(&mut harness, "5");
+    press_text(&mut harness, "0");
+    press_text(&mut harness, "+");
+    press_text(&mut harness, "1");
+    press_text(&mut harness, "0");
     press_text(&mut harness, "%");
     harness.key_press(Key::Enter);
     harness.run();
@@ -117,12 +156,11 @@ fn percent_uses_windows_semantics() {
 #[test]
 fn star_text_event_multiplies() {
     let mut harness = harness();
-    harness.key_press(Key::Num6);
-    harness.key_press(Key::Num7);
-    harness.run();
+    press_text(&mut harness, "6");
+    press_text(&mut harness, "7");
     press_text(&mut harness, "*");
-    harness.key_press(Key::Num1);
-    harness.key_press(Key::Num0);
+    press_text(&mut harness, "1");
+    press_text(&mut harness, "0");
     harness.key_press(Key::Enter);
     harness.run();
     assert_eq!(harness.state().display(), "670");
