@@ -1,7 +1,7 @@
 # RustCalc
 
-A fast, portable calculator for Windows, macOS and Linux, built in Rust with
-[egui](https://github.com/emilk/egui).
+A fast, portable calculator for Windows, macOS, Linux and Android, built in
+Rust with [egui](https://github.com/emilk/egui).
 
 ![RustCalc screenshot](docs/screenshot.png)
 
@@ -12,6 +12,7 @@ A fast, portable calculator for Windows, macOS and Linux, built in Rust with
 - Calculation history: click an entry to recall its result; saved across restarts
 - Full keyboard support (see below)
 - Native binaries for Windows, macOS (Apple silicon and Intel) and Linux
+- Android APK (sideload; Android 8.0+)
 - No runtime dependencies — unpack and run
 
 ## Download
@@ -25,8 +26,13 @@ Grab the latest build for your platform from
 | macOS (Apple silicon)| `rustcalc-vX.Y.Z-aarch64-apple-darwin.tar.gz`   |
 | macOS (Intel)        | `rustcalc-vX.Y.Z-x86_64-apple-darwin.tar.gz`    |
 | Linux (x64)          | `rustcalc-vX.Y.Z-x86_64-unknown-linux-gnu.tar.gz` |
+| Android              | `rustcalc-vX.Y.Z-android.apk`                   |
 
 Unpack the archive and run `rustcalc` (`rustcalc.exe` on Windows).
+
+**Android:** download the `.apk` on your phone, tap it, and allow installing
+from unknown sources when prompted. The APK is debug-signed, which is fine for
+personal sideloading.
 
 ## Keyboard
 
@@ -56,9 +62,12 @@ cargo run -p rustcalc-app
 - `crates/rustcalc-app` — thin [eframe](https://github.com/emilk/eframe) shell
   with headless UI tests via
   [`egui_kittest`](https://github.com/emilk/egui/tree/main/crates/egui_kittest)
+- `crates/rustcalc-android` — Android entry point (cdylib) that starts the same
+  app; CI packages it into the sideloadable APK
 
 CI runs formatting, Clippy (`-D warnings`) and the full test suite on Windows,
-macOS and Linux. Pushing a `v*` tag builds and publishes release binaries.
+macOS and Linux. Pushing a `v*` tag builds and publishes the release binaries
+and the Android APK.
 
 ## License
 

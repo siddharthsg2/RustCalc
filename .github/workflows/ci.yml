@@ -42,3 +42,9 @@ jobs:
 
       - name: Tests
         run: cargo test --workspace --locked
+
+      - name: Check Android target
+        if: runner.os == 'Linux'
+        run: |
+          rustup target add aarch64-linux-android
+          cargo check -p rustcalc-android --target aarch64-linux-android --locked
