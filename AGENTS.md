@@ -5,9 +5,12 @@ Rules for AI agents and contributors working in this repository.
 ## Hard rules
 
 - `#![forbid(unsafe_code)]` stays in every crate. Never remove it.
-- All business logic lives in `crates/rustcalc-core`. The GUI crate
-  (`crates/rustcalc-app`) is a thin shell: it renders state and forwards
-  input — no calculator logic there.
+  Documented exception: `crates/rustcalc-android` cannot carry the attribute
+  because Android looks up the exported `android_main` symbol, which Rust only
+  produces via `#[unsafe(no_mangle)]`. No other unsafe code is allowed there.
+- All business logic lives in `crates/rustcalc-core`. The GUI crates
+  (`crates/rustcalc-app` and `crates/rustcalc-android`) are thin shells: they
+  render state and forward input — no calculator logic there.
 - No `.unwrap()`, `.expect()` or panics in production code (tests only).
   Return `Result`/`Option` and handle errors explicitly.
 - Never invent dependency versions. Add dependencies with `cargo add <crate>`

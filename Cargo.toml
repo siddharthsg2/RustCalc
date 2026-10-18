@@ -1,9 +1,13 @@
 [workspace]
 resolver = "3"
-members = ["crates/rustcalc-core", "crates/rustcalc-app"]
+members = [
+    "crates/rustcalc-core",
+    "crates/rustcalc-app",
+    "crates/rustcalc-android",
+]
 
 [workspace.package]
-version = "0.1.2"
+version = "0.2.0"
 edition = "2024"
 rust-version = "1.95"
 license = "MIT"

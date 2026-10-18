@@ -1,6 +1,6 @@
 [package]
 name = "rustcalc-app"
-description = "RustCalc desktop application (egui GUI shell)"
+description = "RustCalc application (egui GUI shell)"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -12,8 +12,13 @@ name = "rustcalc"
 path = "src/main.rs"
 
 [dependencies]
-eframe = { version = "0.37", features = ["persistence"] }
 rustcalc-core = { path = "../rustcalc-core" }
+
+[target.'cfg(not(target_os = "android"))'.dependencies]
+eframe = { version = "0.37", features = ["persistence"] }
+
+[target.'cfg(target_os = "android")'.dependencies]
+eframe = { version = "0.37", default-features = false, features = ["persistence", "default_fonts", "glow", "android-native-activity"] }
 
 [dev-dependencies]
 egui_kittest = "0.37.0"
