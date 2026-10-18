@@ -1,0 +1,15 @@
+[package]
+name = "rustcalc-app"
+description = "RustCalc desktop application (egui GUI shell)"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[[bin]]
+name = "rustcalc"
+path = "src/main.rs"
+
+[dependencies]
+rustcalc-core = { path = "../rustcalc-core" }

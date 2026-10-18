@@ -1,0 +1,10 @@
+[package]
+name = "rustcalc-core"
+description = "Pure calculator logic for RustCalc: state machine, history and display formatting"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
