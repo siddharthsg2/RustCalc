@@ -2,6 +2,9 @@
 //!
 //! Renders the calculator and forwards input to `rustcalc_core`.
 
+use std::sync::Arc;
+use std::sync::atomic::{AtomicI32, Ordering};
+
 use eframe::egui;
 use egui::{Align, Button, Color32, Key, Layout, RichText};
 use rustcalc_core::{Calculator, Op, deserialize_history, serialize_history};
@@ -69,6 +72,7 @@ fn key(label: &'static str, action: Action, kind: KeyKind) -> KeyDef {
 pub struct RustCalcApp {
     calculator: Calculator,
     show_history: bool,
+    insets: Option<InsetsHandle>,
 }
 
 impl Default for RustCalcApp {
@@ -83,7 +87,13 @@ impl RustCalcApp {
         Self {
             calculator: Calculator::new(),
             show_history: false,
+            insets: None,
         }
+    }
+
+    /// Track the system-UI-free area reported by the platform.
+    pub fn set_insets(&mut self, handle: InsetsHandle) {
+        self.insets = Some(handle);
     }
 
     /// Replace the history from previously saved text.
@@ -113,11 +123,16 @@ impl RustCalcApp {
         }
 
         let mut actions = Vec::new();
-        ui.vertical(|ui| {
-            self.top_bar(ui, &mut actions);
-            self.history_section(ui, &mut actions);
-            self.display_section(ui);
-            Self::keypad(ui, &mut actions);
+        let margin = self.inset_margin(ui.ctx());
+        egui::Frame::NONE.inner_margin(margin).show(ui, |ui| {
+            ui.vertical(|ui| {
+                self.top_bar(ui, &mut actions);
+                self.history_section(ui, &mut actions);
+                let (button_size, keypad_height) = keypad_metrics(ui);
+                let display_height = ui.available_height() - keypad_height;
+                self.display_section(ui, display_height);
+                Self::keypad(ui, &mut actions, button_size);
+            });
         });
 
         if !actions.is_empty() {
@@ -125,6 +140,14 @@ impl RustCalcApp {
         }
         for action in actions {
             self.apply(action);
+        }
+    }
+
+    /// Margin keeping the layout clear of system UI (status bar, gesture bar).
+    fn inset_margin(&self, ctx: &egui::Context) -> egui::Margin {
+        match &self.insets {
+            Some(handle) => handle.resolve(ctx).to_margin(),
+            None => egui::Margin::ZERO,
         }
     }
 
@@ -243,37 +266,35 @@ impl RustCalcApp {
             });
     }
 
-    fn display_section(&self, ui: &mut egui::Ui) {
-        theme::display_frame().show(ui, |ui| {
+    /// The display card. `min_outer_height` lets tall screens give the card
+    /// the space the keypad does not need.
+    fn display_section(&self, ui: &mut egui::Ui, min_outer_height: f32) {
+        let frame = theme::display_frame();
+        let vertical_margin =
+            f32::from(frame.inner_margin.top) + f32::from(frame.inner_margin.bottom);
+        frame.show(ui, |ui| {
             ui.set_width(ui.available_width());
-            ui.with_layout(Layout::right_to_left(Align::TOP), |ui| {
+            ui.set_height((min_outer_height - vertical_margin).max(0.0));
+            ui.with_layout(Layout::bottom_up(Align::Max), |ui| {
+                let text = self.calculator.display();
+                let color = if self.calculator.error().is_some() {
+                    theme::ERROR
+                } else {
+                    ui.visuals().strong_text_color()
+                };
+                let size = fit_display_size(ui, &text, ui.available_width(), color);
+                ui.label(RichText::new(&text).size(size).color(color).strong());
+
                 ui.label(
                     RichText::new(self.calculator.expression())
                         .weak()
                         .size(15.0),
                 );
             });
-
-            let text = self.calculator.display();
-            let color = if self.calculator.error().is_some() {
-                theme::ERROR
-            } else {
-                ui.visuals().strong_text_color()
-            };
-            let size = fit_display_size(ui, &text, ui.available_width(), color);
-            ui.with_layout(Layout::right_to_left(Align::TOP), |ui| {
-                ui.label(RichText::new(&text).size(size).color(color).strong());
-            });
         });
     }
 
-    fn keypad(ui: &mut egui::Ui, actions: &mut Vec<Action>) {
-        let spacing = ui.spacing().item_spacing;
-        let button_size = egui::vec2(
-            ((ui.available_width() - spacing.x * 3.0) / 4.0).max(40.0),
-            ((ui.available_height() - spacing.y * 5.0) / 6.0).clamp(36.0, 64.0),
-        );
-
+    fn keypad(ui: &mut egui::Ui, actions: &mut Vec<Action>, button_size: egui::Vec2) {
         let rows: [[KeyDef; 4]; 5] = [
             [
                 key("%", Action::Percent, KeyKind::Function),
@@ -349,7 +370,7 @@ fn key_button(ui: &mut egui::Ui, def: &KeyDef, size: egui::Vec2) -> egui::Respon
             visuals.fg_stroke.color = palette.text;
         }
         ui.add(
-            Button::new(RichText::new(def.label).size(20.0))
+            Button::new(RichText::new(def.label).size((size.y * 0.33).clamp(16.0, 30.0)))
                 .min_size(size)
                 .corner_radius(10),
         )
@@ -372,4 +393,200 @@ fn fit_display_size(ui: &egui::Ui, text: &str, available: f32, color: Color32) -
         size -= 2.0;
     }
     size
+}
+
+/// Height always reserved for the display card, in points.
+const DISPLAY_MIN_HEIGHT: f32 = 100.0;
+
+/// Button size and total keypad height (including the equals row) for the
+/// currently available space.
+///
+/// Buttons stretch to fill tall screens up to square, while always leaving
+/// [`DISPLAY_MIN_HEIGHT`] for the display card.
+fn keypad_metrics(ui: &egui::Ui) -> (egui::Vec2, f32) {
+    let spacing = ui.spacing().item_spacing;
+    let width = ((ui.available_width() - spacing.x * 3.0) / 4.0).max(40.0);
+    let height =
+        ((ui.available_height() - DISPLAY_MIN_HEIGHT - spacing.y * 5.0) / 6.0).clamp(36.0, width);
+    let size = egui::vec2(width, height);
+    let total = height * 6.0 + spacing.y * 5.0;
+    (size, total)
+}
+
+/// The rectangle (window pixels) in which content is safe from system UI,
+/// shared with whichever platform backend tracks it.
+///
+/// On Android the OS reports this rectangle whenever system UI (status bar,
+/// gesture bar, on-screen keyboard) changes. Desktop platforms never set it,
+/// so no padding is applied there.
+#[derive(Debug, Clone, Default)]
+pub struct InsetsHandle {
+    rect: Arc<InsetsRect>,
+}
+
+#[derive(Debug, Default)]
+struct InsetsRect {
+    left: AtomicI32,
+    top: AtomicI32,
+    right: AtomicI32,
+    bottom: AtomicI32,
+}
+
+impl InsetsHandle {
+    /// A handle with an empty rectangle. The app uses a conservative fallback
+    /// until the platform reports real values.
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Replace the content rectangle, in window pixels. Returns whether the
+    /// rectangle changed.
+    pub fn set_rect_px(&self, left: i32, top: i32, right: i32, bottom: i32) -> bool {
+        let changed = self.rect_px() != (left, top, right, bottom);
+        if changed {
+            self.rect.left.store(left, Ordering::Relaxed);
+            self.rect.top.store(top, Ordering::Relaxed);
+            self.rect.right.store(right, Ordering::Relaxed);
+            self.rect.bottom.store(bottom, Ordering::Relaxed);
+        }
+        changed
+    }
+
+    fn rect_px(&self) -> (i32, i32, i32, i32) {
+        (
+            self.rect.left.load(Ordering::Relaxed),
+            self.rect.top.load(Ordering::Relaxed),
+            self.rect.right.load(Ordering::Relaxed),
+            self.rect.bottom.load(Ordering::Relaxed),
+        )
+    }
+
+    /// Resolve the rectangle into point insets for this frame.
+    fn resolve(&self, ctx: &egui::Context) -> SafeInsets {
+        safe_insets(
+            self.rect_px(),
+            ctx.pixels_per_point(),
+            ctx.viewport_rect().size(),
+        )
+    }
+}
+
+/// Space taken by system UI on each side, in egui points.
+#[derive(Debug, Clone, Copy, Default, PartialEq)]
+struct SafeInsets {
+    left: f32,
+    top: f32,
+    right: f32,
+    bottom: f32,
+}
+
+/// Used until the platform reports a non-empty content rectangle.
+const FALLBACK_SAFE_AREA: SafeInsets = SafeInsets {
+    left: 0.0,
+    top: 36.0,
+    right: 0.0,
+    bottom: 28.0,
+};
+
+impl SafeInsets {
+    fn to_margin(self) -> egui::Margin {
+        egui::Margin {
+            left: points_to_i8(self.left),
+            top: points_to_i8(self.top),
+            right: points_to_i8(self.right),
+            bottom: points_to_i8(self.bottom),
+        }
+    }
+}
+
+/// Rounds a point value into the `i8` range used by [`egui::Margin`].
+fn points_to_i8(points: f32) -> i8 {
+    points.round().clamp(0.0, 120.0) as i8
+}
+
+/// Converts a content rectangle (window pixels) into point insets, given the
+/// window's pixels-per-point scale and its size in points.
+fn safe_insets(
+    rect: (i32, i32, i32, i32),
+    pixels_per_point: f32,
+    screen: egui::Vec2,
+) -> SafeInsets {
+    let (left, top, right, bottom) = rect;
+    if right <= 0 || bottom <= 0 {
+        return FALLBACK_SAFE_AREA;
+    }
+    SafeInsets {
+        left: (left as f32 / pixels_per_point).max(0.0),
+        top: (top as f32 / pixels_per_point).max(0.0),
+        right: (screen.x - right as f32 / pixels_per_point).max(0.0),
+        bottom: (screen.y - bottom as f32 / pixels_per_point).max(0.0),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn empty_rect_falls_back_to_default_insets() {
+        let insets = safe_insets((0, 0, 0, 0), 1.0, egui::vec2(400.0, 800.0));
+        assert_eq!(insets, FALLBACK_SAFE_AREA);
+    }
+
+    #[test]
+    fn partial_rect_falls_back_to_default_insets() {
+        let insets = safe_insets((0, 120, 0, 0), 1.0, egui::vec2(400.0, 800.0));
+        assert_eq!(insets, FALLBACK_SAFE_AREA);
+    }
+
+    #[test]
+    fn rect_converts_from_pixels_to_points() {
+        let insets = safe_insets((0, 120, 1080, 2280), 3.0, egui::vec2(360.0, 780.0));
+        assert_eq!(
+            insets,
+            SafeInsets {
+                left: 0.0,
+                top: 40.0,
+                right: 0.0,
+                bottom: 20.0,
+            }
+        );
+    }
+
+    #[test]
+    fn rect_beyond_screen_clamps_to_zero() {
+        let insets = safe_insets((0, 10, 2000, 2000), 1.0, egui::vec2(400.0, 800.0));
+        assert_eq!(insets.right, 0.0);
+        assert_eq!(insets.bottom, 0.0);
+        assert_eq!(insets.top, 10.0);
+    }
+
+    #[test]
+    fn handle_reports_only_real_changes() {
+        let handle = InsetsHandle::new();
+        assert!(handle.set_rect_px(1, 2, 300, 400));
+        assert!(!handle.set_rect_px(1, 2, 300, 400));
+        assert!(handle.set_rect_px(1, 2, 300, 500));
+        assert_eq!(handle.rect_px(), (1, 2, 300, 500));
+    }
+
+    #[test]
+    fn margin_conversion_clamps_and_rounds() {
+        let margin = SafeInsets {
+            left: -3.4,
+            top: 36.6,
+            right: 500.0,
+            bottom: 28.2,
+        }
+        .to_margin();
+        assert_eq!(
+            margin,
+            egui::Margin {
+                left: 0,
+                top: 37,
+                right: 120,
+                bottom: 28,
+            }
+        );
+    }
 }

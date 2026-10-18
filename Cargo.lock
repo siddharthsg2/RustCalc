@@ -2945,7 +2945,7 @@ dependencies = [
 
 [[package]]
 name = "rustcalc-android"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "android_logger",
  "eframe",
@@ -2957,7 +2957,7 @@ dependencies = [
 
 [[package]]
 name = "rustcalc-app"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "eframe",
  "egui_kittest",
@@ -2967,7 +2967,7 @@ dependencies = [
 
 [[package]]
 name = "rustcalc-core"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "proptest",
 ]
