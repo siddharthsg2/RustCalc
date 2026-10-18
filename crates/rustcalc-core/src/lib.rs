@@ -11,7 +11,7 @@ mod op;
 
 pub use calculator::{CalcError, Calculator, MAX_ENTRY_DIGITS};
 pub use format::format_number;
-pub use history::{HISTORY_CAPACITY, HistoryEntry};
+pub use history::{HISTORY_CAPACITY, HistoryEntry, deserialize_history, serialize_history};
 pub use op::Op;
 
 /// Product name shown in window titles and help output.

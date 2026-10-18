@@ -1,16 +1,22 @@
 //! End-to-end UI tests driving the real app through egui_kittest.
 
+use std::collections::HashMap;
+
+use eframe::Storage as _;
 use eframe::egui::Key;
 use eframe::egui::accesskit::Role;
 use egui_kittest::Harness;
 use egui_kittest::kittest::Queryable;
-use rustcalc_app::app::RustCalcApp;
+use rustcalc_app::app::{HISTORY_STORAGE_KEY, RustCalcApp};
 
-fn harness() -> Harness<'static, RustCalcApp> {
-    let mut harness =
-        Harness::new_ui_state(|ui, app: &mut RustCalcApp| app.ui(ui), RustCalcApp::new());
+fn harness_with(app: RustCalcApp) -> Harness<'static, RustCalcApp> {
+    let mut harness = Harness::new_ui_state(|ui, app: &mut RustCalcApp| app.ui(ui), app);
     harness.run();
     harness
+}
+
+fn harness() -> Harness<'static, RustCalcApp> {
+    harness_with(RustCalcApp::new())
 }
 
 fn click_button(harness: &mut Harness<'_, RustCalcApp>, label: &str) {
@@ -147,4 +153,69 @@ fn clear_history_empties_panel() {
     click_button(&mut harness, "Clear history");
     assert_eq!(harness.state().calculator().history().len(), 0);
     assert_eq!(harness.state().display(), "2");
+}
+
+/// In-memory [`eframe::Storage`] for testing persistence without touching disk.
+#[derive(Default)]
+struct MockStorage {
+    values: HashMap<String, String>,
+}
+
+impl eframe::Storage for MockStorage {
+    fn get_string(&self, key: &str) -> Option<String> {
+        self.values.get(key).cloned()
+    }
+
+    fn set_string(&mut self, key: &str, value: String) {
+        self.values.insert(key.to_owned(), value);
+    }
+
+    fn remove_string(&mut self, key: &str) {
+        self.values.remove(key);
+    }
+
+    fn flush(&mut self) {}
+}
+
+#[test]
+fn save_writes_history_to_storage() {
+    let mut harness = harness();
+    click_button(&mut harness, "5");
+    click_button(&mut harness, "×");
+    click_button(&mut harness, "4");
+    click_button(&mut harness, "=");
+
+    let mut storage = MockStorage::default();
+    eframe::App::save(harness.state_mut(), &mut storage);
+
+    let saved = storage
+        .get_string(HISTORY_STORAGE_KEY)
+        .expect("save must write the history key");
+    let entries = rustcalc_core::deserialize_history(&saved);
+    assert_eq!(entries.len(), 1);
+    assert_eq!(entries[0].expression, "5 × 4");
+    assert_eq!(entries[0].result, "20");
+    assert_eq!(entries[0].value, 20.0);
+}
+
+#[test]
+fn history_persists_across_restart() {
+    let mut harness = harness();
+    click_button(&mut harness, "2");
+    click_button(&mut harness, "+");
+    click_button(&mut harness, "3");
+    click_button(&mut harness, "=");
+    let saved = harness.state().history_text();
+
+    let mut app = RustCalcApp::new();
+    app.restore_history(&saved);
+    let mut restarted = harness_with(app);
+
+    assert_eq!(restarted.state().display(), "0");
+    click_button(&mut restarted, "History");
+    restarted.get_by_label("2 + 3 = 5");
+
+    let history = restarted.state().calculator().history();
+    assert_eq!(history.len(), 1);
+    assert_eq!(history[0].value, 5.0);
 }

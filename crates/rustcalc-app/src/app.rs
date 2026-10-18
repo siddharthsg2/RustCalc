@@ -4,9 +4,12 @@
 
 use eframe::egui;
 use egui::{Align, Button, Color32, Key, Layout, RichText};
-use rustcalc_core::{Calculator, Op};
+use rustcalc_core::{Calculator, Op, deserialize_history, serialize_history};
 
 use crate::theme;
+
+/// Storage key under which the history is persisted.
+pub const HISTORY_STORAGE_KEY: &str = "history";
 
 /// Everything the UI can trigger.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -35,12 +38,12 @@ enum KeyKind {
 }
 
 impl KeyKind {
-    fn fill(self) -> Option<Color32> {
+    fn palette(self, text: Color32) -> theme::KeyPalette {
         match self {
-            Self::Digit => None,
-            Self::Function => Some(theme::FUNCTION_BG),
-            Self::Operator => Some(theme::OPERATOR_BG),
-            Self::Equals => Some(theme::ACCENT),
+            Self::Digit => theme::KeyPalette::digit(text),
+            Self::Function => theme::KeyPalette::function(text),
+            Self::Operator => theme::KeyPalette::operator(),
+            Self::Equals => theme::KeyPalette::equals(),
         }
     }
 }
@@ -81,6 +84,16 @@ impl RustCalcApp {
             calculator: Calculator::new(),
             show_history: false,
         }
+    }
+
+    /// Replace the history from previously saved text.
+    pub fn restore_history(&mut self, text: &str) {
+        self.calculator.import_history(deserialize_history(text));
+    }
+
+    /// The serialized history, as written by [`eframe::App::save`].
+    pub fn history_text(&self) -> String {
+        serialize_history(self.calculator.history())
     }
 
     /// The main display text (exposed for tests).
@@ -245,26 +258,27 @@ impl RustCalcApp {
     }
 
     fn display_section(&self, ui: &mut egui::Ui) {
-        ui.add_space(4.0);
-        ui.with_layout(Layout::right_to_left(Align::TOP), |ui| {
-            ui.label(
-                RichText::new(self.calculator.expression())
-                    .weak()
-                    .size(15.0),
-            );
-        });
+        theme::display_frame().show(ui, |ui| {
+            ui.set_width(ui.available_width());
+            ui.with_layout(Layout::right_to_left(Align::TOP), |ui| {
+                ui.label(
+                    RichText::new(self.calculator.expression())
+                        .weak()
+                        .size(15.0),
+                );
+            });
 
-        let text = self.calculator.display();
-        let color = if self.calculator.error().is_some() {
-            theme::ERROR
-        } else {
-            ui.visuals().strong_text_color()
-        };
-        let size = fit_display_size(ui, &text, ui.available_width(), color);
-        ui.with_layout(Layout::right_to_left(Align::TOP), |ui| {
-            ui.label(RichText::new(&text).size(size).color(color).strong());
+            let text = self.calculator.display();
+            let color = if self.calculator.error().is_some() {
+                theme::ERROR
+            } else {
+                ui.visuals().strong_text_color()
+            };
+            let size = fit_display_size(ui, &text, ui.available_width(), color);
+            ui.with_layout(Layout::right_to_left(Align::TOP), |ui| {
+                ui.label(RichText::new(&text).size(size).color(color).strong());
+            });
         });
-        ui.add_space(4.0);
     }
 
     fn keypad(ui: &mut egui::Ui, actions: &mut Vec<Action>) {
@@ -329,20 +343,32 @@ impl eframe::App for RustCalcApp {
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ui, |ui| self.ui(ui));
     }
+
+    fn save(&mut self, storage: &mut dyn eframe::Storage) {
+        storage.set_string(HISTORY_STORAGE_KEY, self.history_text());
+        storage.flush();
+    }
 }
 
 fn key_button(ui: &mut egui::Ui, def: &KeyDef, size: egui::Vec2) -> egui::Response {
-    let text_color = match def.kind {
-        KeyKind::Equals => theme::ACCENT_TEXT,
-        _ => ui.visuals().text_color(),
-    };
-    let mut button = Button::new(RichText::new(def.label).size(20.0).color(text_color))
-        .min_size(size)
-        .corner_radius(10);
-    if let Some(fill) = def.kind.fill() {
-        button = button.fill(fill);
-    }
-    ui.add(button)
+    let palette = def.kind.palette(ui.visuals().text_color());
+    ui.scope(|ui| {
+        let widgets = &mut ui.style_mut().visuals.widgets;
+        for (visuals, fill) in [
+            (&mut widgets.inactive, palette.base),
+            (&mut widgets.hovered, palette.hover),
+            (&mut widgets.active, palette.active),
+        ] {
+            visuals.weak_bg_fill = fill;
+            visuals.fg_stroke.color = palette.text;
+        }
+        ui.add(
+            Button::new(RichText::new(def.label).size(20.0))
+                .min_size(size)
+                .corner_radius(10),
+        )
+    })
+    .inner
 }
 
 /// The largest font size (step 2, capped) at which `text` fits `available`.

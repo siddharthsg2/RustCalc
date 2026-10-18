@@ -5,4 +5,5 @@
 //! All calculator logic lives in `rustcalc_core`; this crate is a thin shell.
 
 pub mod app;
+pub mod icon;
 pub mod theme;

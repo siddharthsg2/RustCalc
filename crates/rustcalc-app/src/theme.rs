@@ -1,6 +1,6 @@
 //! Visual theme for RustCalc.
 
-use eframe::egui::{self, Color32, CornerRadius, Vec2};
+use eframe::egui::{self, Color32, CornerRadius, Frame, Vec2};
 
 /// Accent color (equals key, selection highlight).
 pub const ACCENT: Color32 = Color32::from_rgb(0xF2, 0xA9, 0x3B);
@@ -8,10 +8,65 @@ pub const ACCENT: Color32 = Color32::from_rgb(0xF2, 0xA9, 0x3B);
 pub const ACCENT_TEXT: Color32 = Color32::from_rgb(0x1B, 0x1E, 0x24);
 /// Error text color.
 pub const ERROR: Color32 = Color32::from_rgb(0xFF, 0x7A, 0x7A);
-/// Function key background (`%`, `CE`, `C`, `DEL`, `±`).
-pub const FUNCTION_BG: Color32 = Color32::from_rgb(0x34, 0x3B, 0x47);
-/// Operator key background (`÷`, `×`, `−`, `+`).
-pub const OPERATOR_BG: Color32 = Color32::from_rgb(0x2A, 0x34, 0x41);
+
+/// Background of digit keys (`0`–`9`, `.`).
+const KEY_DIGIT_BG: Color32 = Color32::from_rgb(0x2B, 0x30, 0x3B);
+/// Background of function keys (`%`, `CE`, `C`, `DEL`, `±`).
+const KEY_FUNCTION_BG: Color32 = Color32::from_rgb(0x34, 0x3B, 0x47);
+/// Background of operator keys (`÷`, `×`, `−`, `+`).
+const KEY_OPERATOR_BG: Color32 = Color32::from_rgb(0x28, 0x33, 0x42);
+
+/// Colors of one class of keypad button, including hover/active states.
+#[derive(Debug, Clone, Copy)]
+pub struct KeyPalette {
+    /// Fill when idle.
+    pub base: Color32,
+    /// Fill while hovered.
+    pub hover: Color32,
+    /// Fill while pressed.
+    pub active: Color32,
+    /// Text color in all states.
+    pub text: Color32,
+}
+
+impl KeyPalette {
+    fn new(base: Color32, text: Color32) -> Self {
+        Self {
+            base,
+            hover: base.linear_multiply(1.12),
+            active: base.linear_multiply(0.92),
+            text,
+        }
+    }
+
+    /// Digit keys.
+    pub fn digit(text: Color32) -> Self {
+        Self::new(KEY_DIGIT_BG, text)
+    }
+
+    /// Function keys.
+    pub fn function(text: Color32) -> Self {
+        Self::new(KEY_FUNCTION_BG, text)
+    }
+
+    /// Operator keys: amber symbols on a dark blue-gray.
+    pub fn operator() -> Self {
+        Self::new(KEY_OPERATOR_BG, ACCENT)
+    }
+
+    /// The equals key: amber fill with dark text.
+    pub fn equals() -> Self {
+        Self::new(ACCENT, ACCENT_TEXT)
+    }
+}
+
+/// The card around the expression and result display.
+pub fn display_frame() -> Frame {
+    Frame::new()
+        .fill(Color32::from_rgb(0x22, 0x27, 0x30))
+        .corner_radius(CornerRadius::same(12))
+        .inner_margin(12)
+}
 
 /// Apply the RustCalc dark theme to a context.
 pub fn apply(ctx: &egui::Context) {

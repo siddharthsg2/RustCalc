@@ -310,6 +310,13 @@ impl Calculator {
         self.history.clear();
     }
 
+    /// Replace the recorded history, e.g. after loading it from disk.
+    ///
+    /// At most the newest [`crate::HISTORY_CAPACITY`] entries are kept.
+    pub fn import_history(&mut self, entries: Vec<HistoryEntry>) {
+        self.history.replace(entries);
+    }
+
     /// Put the result of history entry `index` into the display.
     ///
     /// Returns `false` when the index is out of range.
